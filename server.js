@@ -63,7 +63,7 @@ app.post('/api/sessions', async (req, res) => {
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Fallback for React Router (if used)
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
