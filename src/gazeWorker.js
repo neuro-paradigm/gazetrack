@@ -10,7 +10,7 @@
  *        { type: 'error', message }
  */
 
-import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs';
+import { FaceLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 
 let faceLandmarker = null;
 let lastTs = -1;
@@ -28,7 +28,7 @@ async function init(delegate) {
   try {
     const resolver = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm'
-    );
+    ); // wasm files still loaded from CDN (binary assets, not JS modules)
     faceLandmarker = await FaceLandmarker.createFromOptions(resolver, {
       baseOptions: {
         modelAssetPath:

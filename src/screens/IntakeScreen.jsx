@@ -192,7 +192,7 @@ export default function IntakeScreen({ onStart }) {
 
         // Load preview detector
         const { FaceLandmarker, FilesetResolver } = await import(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs'
+          '@mediapipe/tasks-vision'
         );
         if (cancelled) return;
         const resolver = await FilesetResolver.forVisionTasks(
