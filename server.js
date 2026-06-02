@@ -59,9 +59,6 @@ app.post('/api/sessions', async (req, res) => {
   }
 });
 
-// Serve static frontend in production
-app.use(express.static(path.join(__dirname, 'dist')));
-
 // Admin Dashboard - HTML Page
 app.get('/admin', (req, res) => {
   res.send(`
@@ -149,6 +146,9 @@ app.get('/api/admin/sessions/:id/csv', async (req, res) => {
     res.status(500).send('Error retrieving CSV');
   }
 });
+
+// Serve static frontend in production
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Fallback for React Router (if used)
 app.use((req, res) => {
