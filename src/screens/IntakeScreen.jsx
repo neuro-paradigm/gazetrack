@@ -15,6 +15,7 @@ export default function IntakeScreen({ onStart }) {
   const [buddy, setBuddy] = useState('cat');
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [fullscreenEnabled, setFullscreenEnabled] = useState(true);
   const [mediaQueue, setMediaQueue] = useState([]);
   const [mediaLabel, setMediaLabel] = useState('');
 
@@ -233,8 +234,8 @@ export default function IntakeScreen({ onStart }) {
     cancelAnimationFrame(pfRafRef.current);
     cancelAnimationFrame(previewRafRef.current);
     
-    // Request fullscreen on user gesture
-    if (document.documentElement.requestFullscreen) {
+    // Request fullscreen on user gesture if enabled
+    if (fullscreenEnabled && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
 
@@ -338,9 +339,12 @@ export default function IntakeScreen({ onStart }) {
             </div>
           </div>
           <div className="field">
-            <label>Audio Instructions</label>
+            <label>Audio & Display</label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#334155', marginTop: 6, cursor: 'pointer' }}>
               <input type="checkbox" checked={ttsEnabled} onChange={e => setTtsEnabled(e.target.checked)} style={{ width: 18, height: 18 }} /> Enable speech guidance
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: '#334155', marginTop: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={fullscreenEnabled} onChange={e => setFullscreenEnabled(e.target.checked)} style={{ width: 18, height: 18 }} /> Enter full screen automatically
             </label>
           </div>
         </div>
