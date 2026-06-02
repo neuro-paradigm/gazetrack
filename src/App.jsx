@@ -182,7 +182,7 @@ export default function App() {
   }, []);
 
   // ─── Stimulus → Done ──────────────────────────────────────────────────────
-  const handleSessionEnd = useCallback((csv) => {
+  const handleSessionEnd = useCallback((csv, stats) => {
     cancelAnimationFrame(sendRafRef.current);
     setCsvData(csv);
 
@@ -192,10 +192,8 @@ export default function App() {
       video.srcObject.getTracks().forEach(t => t.stop());
     }
 
-    // Parse quick stats from the session (passed back via StimulusScreen)
-    // We collect them via closure in StimulusScreen and pass via csv for simplicity
-    // Stats are re-derived here from what we can compute
-    setDoneStats({ placeholder: true });
+    // Use stats passed from StimulusScreen, with safe fallbacks
+    setDoneStats(stats || { frames: 0, tracked: 0, total: 0, duration: 0, ystd: 0 });
     setPhase('done');
   }, []);
 
@@ -255,7 +253,7 @@ export default function App() {
         <DoneScreen
           csvData={csvData}
           meta={sessionConfig.meta}
-          recordStats={doneStats || { frames: 0, tracked: 0, total: 0, duration: 0, ystd: { toFixed: () => '0' } }}
+          recordStats={doneStats || { frames: 0, tracked: 0, total: 0, duration: 0, ystd: 0 }}
           affineBias={affineBias}
           trialNumber={1}
           onRestart={handleRestart}

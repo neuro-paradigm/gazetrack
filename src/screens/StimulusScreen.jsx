@@ -92,7 +92,21 @@ export default function StimulusScreen({
 
   // Load media item
   const loadMedia = useCallback((idx) => {
-    if (idx >= mediaQueue.length) { setNoVideo(mediaQueue.length === 0); onEnd(buildSessionCSV()); return; }
+    if (idx >= mediaQueue.length) {
+      setNoVideo(mediaQueue.length === 0);
+      const frms = recordedFrames.current;
+      const trackedCount = frms.filter(f => f.tracked).length;
+      const total = frms.length;
+      const duration = Math.round((performance.now() - perfStart) / 1000);
+      const ys = frms.filter(f => f.tracked).map(f => f.y);
+      let ystd = 0;
+      if (ys.length > 1) {
+        const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+        ystd = Math.sqrt(ys.reduce((a, b) => a + (b - my) ** 2, 0) / ys.length);
+      }
+      onEnd(buildSessionCSV(), { frames: total, tracked: trackedCount, total, duration, ystd });
+      return;
+    }
     
     clearTimeout(imageTimerRef.current);
     
@@ -317,7 +331,18 @@ export default function StimulusScreen({
     clearInterval(timerInt.current);
     clearTimeout(trialAutoTimer.current);
     videoRef.current?.pause();
-    onEnd(buildSessionCSV());
+    const frames = recordedFrames.current;
+    const tracked = frames.filter(f => f.tracked).length;
+    const total = frames.length;
+    const duration = Math.round((performance.now() - perfStart) / 1000);
+    const ys = frames.filter(f => f.tracked).map(f => f.y);
+    let ystd = 0;
+    if (ys.length > 1) {
+      const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+      ystd = Math.sqrt(ys.reduce((a, b) => a + (b - my) ** 2, 0) / ys.length);
+    }
+    const stats = { frames: total, tracked, total, duration, ystd };
+    onEnd(buildSessionCSV(), stats);
   };
 
   const handleNextTrial = () => {

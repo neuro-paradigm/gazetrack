@@ -10,6 +10,7 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
   const [countdown, setCountdown] = useState(null);
 
   const { frames, tracked, total, duration, ystd } = recordStats;
+  const ystdVal = typeof ystd === 'number' ? ystd : 0;
   const pct = total > 0 ? Math.round((tracked / total) * 100) : 0;
   const biasOk = Math.abs(affineBias.dx) > 5 || Math.abs(affineBias.dy) > 5;
   const biasLabel = biasOk
@@ -94,7 +95,7 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
             [`${pct}%`, 'TRACKED'],
             [`${duration}s`, 'DURATION'],
             [trialNumber, 'TRIALS'],
-            [ystd.toFixed(0) + 'px', 'Y STD'],
+            [ystdVal.toFixed(0) + 'px', 'Y STD'],
             [biasLabel, 'BIAS CORR'],
           ].map(([n, l]) => (
             <div key={l} className="done-stat">
