@@ -232,6 +232,12 @@ export default function IntakeScreen({ onStart }) {
   const handleStart = () => {
     cancelAnimationFrame(pfRafRef.current);
     cancelAnimationFrame(previewRafRef.current);
+    
+    // Request fullscreen on user gesture
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
     onStart({
       meta: { pid: pid.trim(), age, group, clinician: clinician.trim(), location: location.trim(), notes: notes.trim(), colorTag: '' },
       buddy, ttsEnabled, soundEnabled, mediaQueue,
