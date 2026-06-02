@@ -105,7 +105,7 @@ export default function StimulusScreen({
       if (video) { video.onended = null; video.onerror = null; video.oncanplay = null; video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
       if (img) { img.src = item.src; img.style.display = 'block'; }
       
-      // Auto-advance image after 45 seconds
+      // Auto-advance image after 30 seconds
       imageTimerRef.current = setTimeout(() => {
         const imgEl = imgRef.current;
         if (imgEl && imgEl.style.display !== 'none') { 
@@ -113,7 +113,7 @@ export default function StimulusScreen({
           loadMedia(mediaIdx.current); 
         }
         advanceTrial();
-      }, 45000);
+      }, 30000);
       
     } else {
       if (img) img.style.display = 'none';
@@ -263,10 +263,6 @@ export default function StimulusScreen({
     };
     resize();
     window.addEventListener('resize', resize);
-
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
 
     timerInt.current = setInterval(() => {
       const s = Math.floor((Date.now() - sessionStart) / 1000);

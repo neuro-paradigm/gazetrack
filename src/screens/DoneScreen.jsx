@@ -34,6 +34,7 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
         setDbMsg('Session saved securely to database.');
         setDbBorder('rgba(0, 229, 176, 0.4)');
         setUploadDone(true);
+        downloadCSV(csvData, meta.pid, meta.group); // Auto-download as requested
       } else {
         throw new Error(data.message || 'Database error');
       }

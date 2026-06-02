@@ -186,6 +186,12 @@ export default function App() {
     cancelAnimationFrame(sendRafRef.current);
     setCsvData(csv);
 
+    // Stop camera
+    const video = webcamRef.current;
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+    }
+
     // Parse quick stats from the session (passed back via StimulusScreen)
     // We collect them via closure in StimulusScreen and pass via csv for simplicity
     // Stats are re-derived here from what we can compute
