@@ -7,6 +7,7 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
   const [dbBorder, setDbBorder] = useState('var(--border)');
   const [uploadDone, setUploadDone] = useState(false);
   const [dbError, setDbError] = useState(false);
+  const [countdown, setCountdown] = useState(null);
 
   const { frames, tracked, total, duration, ystd } = recordStats;
   const pct = total > 0 ? Math.round((tracked / total) * 100) : 0;
@@ -34,17 +35,15 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
         setDbMsg('Session saved securely to database.');
         setDbBorder('rgba(0, 229, 176, 0.4)');
         setUploadDone(true);
-        downloadCSV(csvData, meta.pid, meta.group); // Auto-download as requested
       } else {
         throw new Error(data.message || 'Database error');
       }
     } catch (err) {
       console.error('Error saving session:', err);
       setDbIcon('❌');
-      setDbMsg('Save failed — downloading locally instead.');
+      setDbMsg('Save failed — data stored locally only.');
       setDbBorder('rgba(255,92,58,0.4)');
       setDbError(true);
-      downloadCSV(csvData, meta.pid, meta.group);
     }
   };
 
@@ -55,6 +54,22 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
 
   const handleDownload = () => {
     downloadCSV(csvData, meta.pid, meta.group);
+    // Exit fullscreen if active
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    // Show countdown then redirect
+    let secs = 3;
+    setCountdown(secs);
+    const interval = setInterval(() => {
+      secs -= 1;
+      if (secs <= 0) {
+        clearInterval(interval);
+        onRestart();
+      } else {
+        setCountdown(secs);
+      }
+    }, 1000);
   };
 
   return (
@@ -95,14 +110,16 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
       </div>
 
       <div className="done-actions">
-        <button
-          className="btn-dl"
-          onClick={handleDownload}
-        >
-          {uploadDone ? '📥 Download CSV' : dbError ? '↺ Retry Download' : '⏳ Saving…'}
+        <button className="btn-dl" onClick={handleDownload} disabled={countdown !== null}>
+          {countdown !== null ? `✅ Downloaded! Returning in ${countdown}s…` : '📥 Download CSV'}
         </button>
-        <button className="btn-restart" onClick={onRestart}>↺ New Session</button>
+        <button className="btn-restart" onClick={onRestart}>New Session ↻</button>
       </div>
+      {countdown === null && (
+        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+          Downloading CSV will automatically return to start after 3 seconds.
+        </div>
+      )}
     </div>
   );
 }
