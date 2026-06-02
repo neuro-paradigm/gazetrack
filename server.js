@@ -143,7 +143,7 @@ app.get('/api/admin/sessions/:id/csv', async (req, res) => {
     if (!session) return res.status(404).send('Session not found');
     
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', \`attachment; filename="\${session.participantId}_gaze.csv"\`);
+    res.setHeader('Content-Disposition', `attachment; filename="${session.participantId}_gaze.csv"`);
     res.send(session.csvData);
   } catch (error) {
     res.status(500).send('Error retrieving CSV');
