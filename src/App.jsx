@@ -114,7 +114,7 @@ export default function App() {
 
     try {
       // Initialise worker
-      const worker = new Worker(new URL('./gazeWorker.js', import.meta.url));
+      const worker = new Worker(new URL('./gazeWorker.js', import.meta.url), { type: 'module' });
       workerRef.current = worker;
 
       await new Promise((resolve, reject) => {
