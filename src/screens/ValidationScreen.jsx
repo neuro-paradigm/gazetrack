@@ -62,6 +62,9 @@ export default function ValidationScreen({ workerRef, gazeModel, soundEnabled, t
       const gapEnd = valStart + VAL_GAP_MS;
       let inGap = true, sparkled = false;
 
+      const introEl = document.getElementById('val-intro-text');
+      if (introEl) introEl.style.opacity = '0';
+
       function frame() {
         if (cancelled) return;
         const now = performance.now();
@@ -143,7 +146,7 @@ export default function ValidationScreen({ workerRef, gazeModel, soundEnabled, t
   return (
     <div id="val-overlay" style={{ display: 'block', position: 'fixed', inset: 0, background: '#0a0c14', zIndex: 200, overflow: 'hidden' }}>
       <canvas ref={canvasRef} style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', display: 'block' }} />
-      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none', zIndex: 210, transition: 'opacity .4s' }}>
+      <div id="val-intro-text" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', pointerEvents: 'none', zIndex: 210, transition: 'opacity 0.8s ease-out' }}>
         <span style={{ fontSize: 72, display: 'block', marginBottom: 16 }}>⭐</span>
         <h3 style={{ fontSize: 28, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Find the Star!</h3>
         <p style={{ fontSize: 16, color: 'var(--muted)' }}>Look at each star as it appears</p>

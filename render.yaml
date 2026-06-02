@@ -1,6 +1,6 @@
 services:
   - type: web
     name: gazetrack
-    env: static
+    env: node
     buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    startCommand: npm start

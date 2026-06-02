@@ -88,9 +88,14 @@ export default function StimulusScreen({
     setTimeout(() => t.remove(), 2500);
   }
 
+  const imageTimerRef = useRef(null);
+
   // Load media item
   const loadMedia = useCallback((idx) => {
     if (idx >= mediaQueue.length) { setNoVideo(mediaQueue.length === 0); onEnd(buildSessionCSV()); return; }
+    
+    clearTimeout(imageTimerRef.current);
+    
     setHudMedia(`${idx + 1}/${mediaQueue.length}`);
     setNoVideo(false);
     const item = mediaQueue[idx];
@@ -99,6 +104,17 @@ export default function StimulusScreen({
     if (item.type === 'image') {
       if (video) { video.onended = null; video.onerror = null; video.oncanplay = null; video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
       if (img) { img.src = item.src; img.style.display = 'block'; }
+      
+      // Auto-advance image after 45 seconds
+      imageTimerRef.current = setTimeout(() => {
+        const imgEl = imgRef.current;
+        if (imgEl && imgEl.style.display !== 'none') { 
+          mediaIdx.current++; 
+          loadMedia(mediaIdx.current); 
+        }
+        advanceTrial();
+      }, 45000);
+      
     } else {
       if (img) img.style.display = 'none';
       if (video) {
@@ -111,7 +127,7 @@ export default function StimulusScreen({
         video.load();
       }
     }
-  }, [mediaQueue, onEnd]); // eslint-disable-line
+  }, [mediaQueue, onEnd, advanceTrial]); // eslint-disable-line
 
   function buildSessionCSV() {
     return buildCSV({
@@ -247,6 +263,10 @@ export default function StimulusScreen({
     };
     resize();
     window.addEventListener('resize', resize);
+
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
 
     timerInt.current = setInterval(() => {
       const s = Math.floor((Date.now() - sessionStart) / 1000);

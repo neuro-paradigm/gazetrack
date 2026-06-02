@@ -1,16 +1,12 @@
 import { useEffect, useState } from 'react';
 import { downloadCSV } from '../gazeUtils.js';
-import { uploadToDrive, AUTHORISED_EMAIL } from '../drive.js';
 
 export default function DoneScreen({ csvData, meta, recordStats, affineBias, trialNumber, onRestart }) {
-  const [driveIcon, setDriveIcon] = useState('☁️');
-  const [driveMsg, setDriveMsg] = useState('Connecting to Google Drive…');
-  const [driveBorder, setDriveBorder] = useState('var(--border)');
-  const [driveFileId, setDriveFileId] = useState(null);
-  const [driveFolderId, setDriveFolderId] = useState(null);
+  const [dbIcon, setDbIcon] = useState('☁️');
+  const [dbMsg, setDbMsg] = useState('Saving session to database…');
+  const [dbBorder, setDbBorder] = useState('var(--border)');
   const [uploadDone, setUploadDone] = useState(false);
-  const [retryFilename, setRetryFilename] = useState('');
-  const [wrongAccount, setWrongAccount] = useState(false);
+  const [dbError, setDbError] = useState(false);
 
   const { frames, tracked, total, duration, ystd } = recordStats;
   const pct = total > 0 ? Math.round((tracked / total) * 100) : 0;
@@ -21,50 +17,43 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
 
   const stars = new Array(trialNumber).fill('🌟').join('');
 
-  const ts = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = `gaze_${meta.pid}_${meta.group}_${ts}.csv`;
-
-  const doUpload = async (fname) => {
+  const doUpload = async () => {
     try {
-      const { fileId, folderId } = await uploadToDrive(csvData, fname, (icon, msg, border) => {
-        setDriveIcon(icon); setDriveMsg(msg); setDriveBorder(border);
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          participantId: meta.pid,
+          group: meta.group,
+          csvData
+        })
       });
-      setDriveFileId(fileId);
-      setDriveFolderId(folderId);
-      setUploadDone(true);
-    } catch (err) {
-      if (err.message && err.message.startsWith('WRONG_ACCOUNT:')) {
-        const used = err.message.split(':')[1];
-        setDriveIcon('⛔');
-        setDriveMsg(`Wrong account: ${used} — must use ${AUTHORISED_EMAIL}`);
-        setDriveBorder('rgba(255,92,58,0.4)');
-        setWrongAccount(true);
-        setRetryFilename(`gaze_${meta.pid}_${meta.group}_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDbIcon('✅');
+        setDbMsg('Session saved securely to database.');
+        setDbBorder('rgba(0, 229, 176, 0.4)');
+        setUploadDone(true);
       } else {
-        setDriveIcon('❌');
-        setDriveMsg('Drive failed — downloading locally instead');
-        setDriveBorder('rgba(255,92,58,0.4)');
-        downloadCSV(csvData, meta.pid, meta.group);
+        throw new Error(data.message || 'Database error');
       }
+    } catch (err) {
+      console.error('Error saving session:', err);
+      setDbIcon('❌');
+      setDbMsg('Save failed — downloading locally instead.');
+      setDbBorder('rgba(255,92,58,0.4)');
+      setDbError(true);
+      downloadCSV(csvData, meta.pid, meta.group);
     }
   };
 
   useEffect(() => {
-    const t = setTimeout(() => doUpload(filename), 600);
+    const t = setTimeout(() => doUpload(), 600);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line
 
-  const handleDriveBtn = () => {
-    if (wrongAccount) {
-      setWrongAccount(false);
-      doUpload(retryFilename);
-    } else if (driveFileId) {
-      window.open('https://drive.google.com/file/d/' + driveFileId + '/view', '_blank');
-    } else if (driveFolderId) {
-      window.open('https://drive.google.com/drive/folders/' + driveFolderId, '_blank');
-    } else {
-      window.open('https://drive.google.com', '_blank');
-    }
+  const handleDownload = () => {
+    downloadCSV(csvData, meta.pid, meta.group);
   };
 
   return (
@@ -100,17 +89,16 @@ export default function DoneScreen({ csvData, meta, recordStats, affineBias, tri
         </div>
       </div>
 
-      <div id="drive-status" style={{ margin: '4px 0 8px', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontFamily: 'var(--mono)', background: 'var(--ink2)', border: `1px solid ${driveBorder}`, display: 'flex', alignItems: 'center', gap: 10, minWidth: 260, justifyContent: 'center' }}>
-        <span>{driveIcon}</span><span>{driveMsg}</span>
+      <div id="drive-status" style={{ margin: '4px 0 8px', padding: '10px 20px', borderRadius: 10, fontSize: 13, fontFamily: 'var(--mono)', background: 'var(--ink2)', border: `1px solid ${dbBorder}`, display: 'flex', alignItems: 'center', gap: 10, minWidth: 260, justifyContent: 'center' }}>
+        <span>{dbIcon}</span><span>{dbMsg}</span>
       </div>
 
       <div className="done-actions">
         <button
           className="btn-dl"
-          style={{ opacity: uploadDone || wrongAccount ? 1 : 0.45, pointerEvents: uploadDone || wrongAccount ? 'auto' : 'none', cursor: uploadDone || wrongAccount ? 'pointer' : 'not-allowed' }}
-          onClick={handleDriveBtn}
+          onClick={handleDownload}
         >
-          {wrongAccount ? '↺ Retry Upload' : uploadDone ? '☁️ Open in Drive' : '⏳ Saving to Drive…'}
+          {uploadDone ? '📥 Download CSV' : dbError ? '↺ Retry Download' : '⏳ Saving…'}
         </button>
         <button className="btn-restart" onClick={onRestart}>↺ New Session</button>
       </div>
