@@ -102,7 +102,9 @@ export default function App() {
       const ts = video.currentTime * 1000 || performance.now();
       createImageBitmap(video).then(bitmap => {
         workerRef.current?.postMessage({ type: 'detect', bitmap, timestamp: ts }, [bitmap]);
-      }).catch(() => {});
+      }).catch(err => {
+        console.error('createImageBitmap error:', err);
+      });
       sendRafRef.current = requestAnimationFrame(sendFrame);
     }
     sendRafRef.current = requestAnimationFrame(sendFrame);

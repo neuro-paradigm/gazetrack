@@ -189,6 +189,22 @@ export default function CalibrationScreen({ workerRef, gazeModel, buddy, soundEn
       }
 
       drawBuddy(ctx, tx, ty, bctRef.current, true, buddy);
+
+      // DEBUG INFO
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '16px monospace';
+      const feat = calibLastFeatRef.current;
+      if (!feat) {
+        ctx.fillText('Tracking: NO FACE DETECTED', 20, 40);
+      } else {
+        const ear = feat[7];
+        const isBlink = ear < 0.06;
+        ctx.fillText(`EAR: ${ear.toFixed(3)} ${isBlink ? '(BLINK/EYES CLOSED)' : '(OPEN)'}`, 20, 40);
+        ctx.fillText(`inRadius: ${inRadius ? 'YES' : 'NO'}`, 20, 60);
+      }
+      ctx.restore();
+
       rafRef.current = requestAnimationFrame(frame);
     }
     frame();
