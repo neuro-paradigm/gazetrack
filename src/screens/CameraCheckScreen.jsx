@@ -204,7 +204,10 @@ export default function CameraCheckScreen({ formData, onStart, onBack }) {
       cancelled = true;
       cancelAnimationFrame(pfRafRef.current);
       cancelAnimationFrame(previewRafRef.current);
-      if (camStreamRef.current) {
+      // We do NOT stop the camera tracks here if we are advancing, 
+      // otherwise the calibration screen receives a stopped stream.
+      // App.jsx will clean up the stream when the session ends.
+      if (!window.gazeTrackAdvancing && camStreamRef.current) {
         camStreamRef.current.getTracks().forEach(t => t.stop());
       }
     };
@@ -213,6 +216,7 @@ export default function CameraCheckScreen({ formData, onStart, onBack }) {
   const handleStart = () => {
     cancelAnimationFrame(pfRafRef.current);
     cancelAnimationFrame(previewRafRef.current);
+    window.gazeTrackAdvancing = true; // prevent cleanup from killing the stream
     
     // Request fullscreen on user gesture if enabled
     if (formData.fullscreenEnabled && document.documentElement.requestFullscreen) {
@@ -236,12 +240,17 @@ export default function CameraCheckScreen({ formData, onStart, onBack }) {
   if (pfState.face === 'fail') advice.push('👤 No face: Make sure child is in frame, camera at eye level.');
   if (pfState.browser === 'warn') advice.push('🌐 Browser: Use Chrome for best webcam performance.');
 
+  const handleBack = () => {
+    window.gazeTrackAdvancing = false;
+    onBack();
+  };
+
   return (
     <div id="s-cameracheck" className="screen active" style={{ background: '#f0f4f8', overflowY: 'auto', padding: '40px 20px', alignItems: 'stretch', justifyContent: 'flex-start', color: '#1e293b' }}>
       <div className="intake-wrap">
         {/* Header */}
         <div className="intake-header">
-          <button onClick={onBack} style={{ alignSelf: 'flex-start', marginBottom: 10, background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={handleBack} style={{ alignSelf: 'flex-start', marginBottom: 10, background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
             ← Back
           </button>
           <div className="intake-logo">
