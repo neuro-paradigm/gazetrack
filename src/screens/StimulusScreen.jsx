@@ -29,6 +29,14 @@ export default function StimulusScreen({
   const [stYstdOk, setStYstdOk] = useState(false);
   const [paused, setPaused] = useState(false);
   const [noVideo, setNoVideo] = useState(mediaQueue.length === 0);
+  const [audioEnabled, _setAudioEnabled] = useState(false);
+
+  const audioEnabledRef = useRef(false);
+  const setAudioEnabled = useCallback((val) => {
+    _setAudioEnabled(val);
+    audioEnabledRef.current = val;
+    if (videoRef.current) videoRef.current.muted = !val;
+  }, []);
 
   // Mutable recording state (not React state — avoid re-renders)
   const recordedFrames = useRef([]);
@@ -134,7 +142,7 @@ export default function StimulusScreen({
       if (video) {
         video.style.display = 'block';
         video.onended = null; video.onerror = null; video.oncanplay = null; video.onloadedmetadata = null;
-        video.src = item.src; video.muted = true;
+        video.src = item.src; video.muted = !audioEnabledRef.current;
         video.onended = () => { video.onended = null; mediaIdx.current++; loadMedia(mediaIdx.current); };
         video.onerror = () => { video.onerror = null; mediaIdx.current++; loadMedia(mediaIdx.current); };
         video.oncanplay = () => { video.oncanplay = null; video.play().catch(() => {}); };
@@ -384,6 +392,9 @@ export default function StimulusScreen({
           <div className="hud-chip" style={{ background: 'rgba(99,102,241,0.15)', borderColor: '#6366f1' }}>Media: <b>{hudMedia}</b></div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="end-btn" onClick={() => setAudioEnabled(!audioEnabled)} style={{ background: audioEnabled ? 'rgba(0,229,176,.28)' : 'rgba(0,229,176,.12)', borderColor: 'rgba(0,229,176,.35)', color: '#00e5b0', fontSize: 12, padding: '6px 14px' }}>
+            {audioEnabled ? '🔊 Audio On' : '🔇 Audio Off'}
+          </button>
           <button className="end-btn" onClick={handleNextTrial} style={{ background: 'linear-gradient(135deg,#7c3aed,#4f46e5)', fontSize: 12, padding: '6px 14px', color: '#fff', border: 'none' }}>⏭ Next Trial</button>
           <button className="end-btn" onClick={handlePause} style={{ background: paused ? 'rgba(251,191,36,.28)' : 'rgba(251,191,36,.12)', borderColor: 'rgba(251,191,36,.35)', color: '#fbbf24', fontSize: 12, padding: '6px 14px' }}>
             {paused ? '▶ Resume' : '⏸ Pause'}

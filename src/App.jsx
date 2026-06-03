@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import IntakeScreen from './screens/IntakeScreen.jsx';
+import IntakeFormScreen from './screens/IntakeFormScreen.jsx';
+import CameraCheckScreen from './screens/CameraCheckScreen.jsx';
 import CalibrationScreen from './screens/CalibrationScreen.jsx';
 import ValidationScreen from './screens/ValidationScreen.jsx';
 import StimulusScreen from './screens/StimulusScreen.jsx';
@@ -43,7 +44,8 @@ function LoadingScreen({ msg }) {
   'intake' → 'loading' → 'calib' → 'validation' → 'celebration' → 'stimulus' → 'done'
 */
 export default function App() {
-  const [phase, setPhase] = useState('intake');
+  const [phase, setPhase] = useState('intake_form');
+  const [formData, setFormData] = useState(null);
   const [loadMsg, setLoadMsg] = useState('Initialising…');
 
   // Session config (set on intake submit)
@@ -205,7 +207,8 @@ export default function App() {
       {/* Hidden webcam — feeds the worker */}
       <video ref={webcamRef} id="webcam" autoPlay playsInline muted style={{ position: 'fixed', width: 1, height: 1, opacity: 0, top: 0, left: 0 }} />
 
-      {phase === 'intake' && <IntakeScreen onStart={handleIntakeStart} />}
+      {phase === 'intake_form' && <IntakeFormScreen onNext={(data) => { setFormData(data); setPhase('camera_check'); }} />}
+      {phase === 'camera_check' && <CameraCheckScreen formData={formData} onStart={handleIntakeStart} onBack={() => setPhase('intake_form')} />}
       {phase === 'loading' && <LoadingScreen msg={loadMsg} />}
       {phase === 'calib' && (
         <CalibrationScreen
