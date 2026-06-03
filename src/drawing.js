@@ -67,9 +67,23 @@ export function drawDog(ctx, x, y, t, happy) {
 }
 
 export function drawSpaceship(ctx, x, y, t, happy) {
-  // Ultra-simple fallback to test if the canvas drawing is crashing
-  ctx.fillStyle = '#ef4444';
-  ctx.fillRect(x - 20, y - 20, 40, 40);
+  const r = 36, bob = Math.sin(t * 0.6) * 2, cy = y + bob;
+  const hull = '#cbd5e1', dome = '#38bdf8', flame = '#fb923c';
+  ctx.save(); ctx.globalAlpha = 0.13;
+  ctx.beginPath(); ctx.ellipse(x, cy + r + 10, r * 0.7, r * 0.15, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#000'; ctx.fill(); ctx.restore();
+  if (happy) {
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.3, cy + r * 0.5);
+    ctx.lineTo(x, cy + r * 1.4 + Math.random() * 10);
+    ctx.lineTo(x + r * 0.3, cy + r * 0.5);
+    ctx.fillStyle = flame; ctx.fill();
+  }
+  ctx.beginPath(); ctx.ellipse(x, cy, r * 0.8, r, 0, 0, Math.PI * 2); ctx.fillStyle = hull; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, cy - r * 0.2, r * 0.4, 0, Math.PI * 2); ctx.fillStyle = dome; ctx.fill();
+  ctx.beginPath(); ctx.arc(x - r * 0.1, cy - r * 0.3, r * 0.1, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.6; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.moveTo(x - r * 0.7, cy + r * 0.2); ctx.lineTo(x - r * 1.2, cy + r * 0.8); ctx.lineTo(x - r * 0.4, cy + r * 0.6); ctx.fillStyle = '#ef4444'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + r * 0.7, cy + r * 0.2); ctx.lineTo(x + r * 1.2, cy + r * 0.8); ctx.lineTo(x + r * 0.4, cy + r * 0.6); ctx.fill();
 }
 
 export function drawBuddy(ctx, x, y, t, happy, buddy) {

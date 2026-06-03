@@ -94,7 +94,6 @@ export default function App() {
     video.play().catch(err => console.error('Hidden video play error:', err));
     
     video.onloadedmetadata = () => { 
-      console.log('Video dimensions:', video.videoWidth, video.videoHeight);
       video.play(); 
     };
 
