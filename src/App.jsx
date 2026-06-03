@@ -86,10 +86,17 @@ export default function App() {
 
   // Frame-sending loop — captures ImageBitmap from webcam and posts to worker
   const startSendLoop = useCallback((stream) => {
+    webcamRef.current = document.createElement('video');
     const video = webcamRef.current;
-    if (!video) return;
+    video.muted = true;
+    video.playsInline = true;
     video.srcObject = stream;
-    video.onloadedmetadata = () => { video.play(); };
+    video.play().catch(err => console.error('Hidden video play error:', err));
+    
+    video.onloadedmetadata = () => { 
+      console.log('Video dimensions:', video.videoWidth, video.videoHeight);
+      video.play(); 
+    };
 
     function sendFrame() {
       if (!workerRef.current || video.readyState < 2) {
