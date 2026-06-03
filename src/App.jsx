@@ -15,15 +15,15 @@ const MP_DELEGATE = isMobile ? 'CPU' : 'GPU';
 function CelebrationOverlay({ onDone }) {
   useEffect(() => {
     [523, 659, 784].forEach((freq, i) => setTimeout(() => playChime(freq, 0.12, 0.5, true), i * 180));
-    speak('Great job! Get ready to watch the video.', true);
-    const t = setTimeout(onDone, 2200);
+    speak('Amazing job! You did so well! Now it is time to watch a fun video. Keep looking at the screen!', true);
+    const t = setTimeout(onDone, 5000);
     return () => clearTimeout(t);
   }, [onDone]);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: '#0a0c14', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, animation: 'fadeIn .3s ease both' }}>
       <div style={{ fontSize: 80, animation: 'pop .5s cubic-bezier(.17,.67,.26,1.4) both' }}>⭐</div>
-      <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', fontFamily: 'var(--sans)' }}>Great job!</div>
-      <div style={{ fontSize: 18, color: '#7dd8c0', fontFamily: 'var(--sans)' }}>Get ready to watch the video</div>
+      <div style={{ fontSize: 36, fontWeight: 800, color: '#fff', fontFamily: 'var(--sans)' }}>Amazing job!</div>
+      <div style={{ fontSize: 20, color: '#7dd8c0', fontFamily: 'var(--sans)', textAlign: 'center', lineHeight: 1.6, maxWidth: 400 }}>Now it's time to watch a fun video 🎬<br/>Keep looking at the screen!</div>
     </div>
   );
 }

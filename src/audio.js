@@ -30,9 +30,44 @@ export function playCalibSound(enabled) {
   o.start(); o.stop(a.currentTime + 0.3);
 }
 
+// Prefer a female voice — loaded async by the browser
+let _femaleVoice = null;
+function getFemaleVoice() {
+  if (_femaleVoice) return _femaleVoice;
+  const voices = window.speechSynthesis.getVoices();
+  // Priority list of well-known female voices across browsers / OS
+  const preferred = [
+    'Google UK English Female',
+    'Google US English Female',
+    'Samantha',            // macOS / iOS
+    'Karen',               // macOS
+    'Moira',               // macOS
+    'Tessa',               // macOS
+    'Veena',               // macOS
+    'Microsoft Zira',      // Windows
+    'Microsoft Aria',      // Windows 11
+    'Microsoft Jenny',     // Windows 11
+  ];
+  for (const name of preferred) {
+    const v = voices.find(v => v.name === name);
+    if (v) { _femaleVoice = v; return v; }
+  }
+  // Fall back: any voice whose name contains 'female' (case-insensitive)
+  const fallback = voices.find(v => /female/i.test(v.name));
+  if (fallback) { _femaleVoice = fallback; return fallback; }
+  return null; // browser will use its default
+}
+
+// Pre-warm voices list once the browser has loaded them
+if (typeof window !== 'undefined') {
+  window.speechSynthesis.addEventListener('voiceschanged', getFemaleVoice);
+}
+
 export function speak(text, enabled) {
   if (!enabled) return;
   const msg = new SpeechSynthesisUtterance(text);
-  msg.rate = 0.95; msg.pitch = 1.1;
+  const voice = getFemaleVoice();
+  if (voice) msg.voice = voice;
+  msg.rate = 0.92; msg.pitch = 1.15;
   window.speechSynthesis.speak(msg);
 }
