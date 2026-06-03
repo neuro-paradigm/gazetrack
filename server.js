@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Readable } from 'stream';
 
 dotenv.config();
 
@@ -144,6 +145,67 @@ app.get('/api/admin/sessions/:id/csv', async (req, res) => {
     res.send(session.csvData);
   } catch (error) {
     res.status(500).send('Error retrieving CSV');
+  }
+});
+
+// Google Drive Proxy: List Stimuli Files
+app.get('/api/stimuli/list', async (req, res) => {
+  const apiKey = process.env.GDRIVE_API_KEY;
+  const folderId = process.env.GDRIVE_STIMULI_FOLDER_ID;
+  
+  if (!apiKey || !folderId) {
+    return res.status(500).json({ success: false, message: 'Google Drive proxy not configured (missing API key or Folder ID)' });
+  }
+
+  try {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed = false`);
+    const response = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,mimeType)&key=${apiKey}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Drive API error: ${response.status} - ${errorText}`);
+    }
+    const data = await response.json();
+    
+    // Filter out folders, only keep images/videos
+    const mediaFiles = data.files.filter(f => f.mimeType.startsWith('video/') || f.mimeType.startsWith('image/'));
+    res.json({ success: true, files: mediaFiles });
+  } catch (error) {
+    console.error('Error listing stimuli:', error);
+    res.status(500).json({ success: false, message: 'Error fetching files from Google Drive' });
+  }
+});
+
+// Google Drive Proxy: Stream Media
+app.get('/api/stimuli/media/:id', async (req, res) => {
+  const apiKey = process.env.GDRIVE_API_KEY;
+  if (!apiKey) return res.status(500).send('Google Drive API key not configured');
+
+  const fileId = req.params.id;
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+
+  try {
+    const headers = {};
+    if (req.headers.range) {
+      headers.Range = req.headers.range;
+    }
+
+    const response = await fetch(url, { headers });
+    
+    res.status(response.status);
+    
+    response.headers.forEach((value, key) => {
+      // Don't forward Content-Encoding if it's going to mess up streaming
+      if (key.toLowerCase() !== 'content-encoding') {
+        res.setHeader(key, value);
+      }
+    });
+
+    Readable.fromWeb(response.body).pipe(res);
+  } catch (error) {
+    console.error('Error streaming media:', error);
+    if (!res.headersSent) {
+      res.status(500).send('Internal Server Error');
+    }
   }
 });
 

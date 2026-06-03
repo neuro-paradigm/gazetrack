@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function IntakeFormScreen({ onNext }) {
   const [pid, setPid] = useState('');
@@ -15,6 +15,23 @@ export default function IntakeFormScreen({ onNext }) {
   const [mediaLabel, setMediaLabel] = useState('');
 
   const canStart = pid.trim().length > 0 && group !== '';
+
+  useEffect(() => {
+    fetch('/api/stimuli/list')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.files && data.files.length > 0) {
+          const q = data.files.map(f => ({
+            src: `/api/stimuli/media/${f.id}`,
+            type: f.mimeType.startsWith('image/') ? 'image' : 'video',
+            name: f.name
+          }));
+          setMediaQueue(q);
+          setMediaLabel(`Loaded ${q.length} files from Drive`);
+        }
+      })
+      .catch(err => console.error('Error fetching stimuli from Drive:', err));
+  }, []);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
