@@ -13,6 +13,7 @@ export default function IntakeFormScreen({ onNext }) {
   const [fullscreenEnabled, setFullscreenEnabled] = useState(true);
   const [mediaQueue, setMediaQueue] = useState([]);
   const [mediaLabel, setMediaLabel] = useState('');
+  const [driveStatus, setDriveStatus] = useState('fetching'); // 'fetching', 'success', 'error'
 
   const canStart = pid.trim().length > 0 && group !== '';
 
@@ -28,18 +29,18 @@ export default function IntakeFormScreen({ onNext }) {
           }));
           setMediaQueue(q);
           setMediaLabel(`Loaded ${q.length} files from Drive`);
+          setDriveStatus('success');
+        } else {
+          setMediaLabel('No files found in Drive folder');
+          setDriveStatus('error');
         }
       })
-      .catch(err => console.error('Error fetching stimuli from Drive:', err));
+      .catch(err => {
+        console.error('Error fetching stimuli from Drive:', err);
+        setMediaLabel('Failed to connect to Drive proxy');
+        setDriveStatus('error');
+      });
   }, []);
-
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    const q = files.map(f => ({ src: URL.createObjectURL(f), type: f.type.startsWith('image/') ? 'image' : 'video', name: f.name }));
-    setMediaQueue(q);
-    setMediaLabel(files.length === 1 ? files[0].name : `${files.length} files selected`);
-  };
 
   const handleNext = () => {
     onNext({
@@ -143,16 +144,16 @@ export default function IntakeFormScreen({ onNext }) {
 
         {/* Stimulus */}
         <div className="form-section" style={{ marginBottom: 20 }}>
-          <div className="section-label">Stimulus Video</div>
+          <div className="section-label">Stimulus Source</div>
           <div className="field">
-            <label>Video File (optional — can load after calibration)</label>
-            <div className="video-drop" onClick={() => document.getElementById('video-input-hidden').click()}>
-              <div className="icon">🎬</div>
-              {mediaLabel
-                ? <div className="chosen">✓ {mediaLabel}</div>
-                : <div className="hint">Click to choose videos or images (select multiple)</div>
-              }
-              <input type="file" id="video-input-hidden" accept="video/*,image/jpeg,image/png,image/gif,image/webp" multiple onChange={handleFileChange} style={{ display: 'none' }} />
+            <div className="video-drop" style={{ cursor: 'default', background: driveStatus === 'success' ? '#f0fdf4' : driveStatus === 'error' ? '#fef2f2' : '#f8fafc', borderColor: driveStatus === 'success' ? '#bbf7d0' : driveStatus === 'error' ? '#fecaca' : '#e2e8f0' }}>
+              <div className="icon">☁️</div>
+              {driveStatus === 'fetching' && <div className="hint">Connecting to Google Drive...</div>}
+              {driveStatus === 'success' && <div className="chosen" style={{ color: '#166534' }}>✓ {mediaLabel}</div>}
+              {driveStatus === 'error' && <div className="hint" style={{ color: '#991b1b' }}>⚠ {mediaLabel}</div>}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>
+              Stimulus will play automatically after the calibration and validation sequence.
             </div>
           </div>
         </div>
