@@ -14,6 +14,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Serve built frontend FIRST (before any API routes) ──────────────────────
+// This must come first so .css/.js assets are served with correct MIME types
+// and don't fall through to the catch-all HTML route.
+app.use(express.static(path.join(__dirname, 'dist'), {
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.css'))  res.setHeader('Content-Type', 'text/css');
+    if (filePath.endsWith('.js'))   res.setHeader('Content-Type', 'application/javascript');
+    if (filePath.endsWith('.wasm')) res.setHeader('Content-Type', 'application/wasm');
+  }
+}));
+
 app.use(cors());
 // Increase payload limit for large CSV strings
 app.use(express.json({ limit: '50mb' }));
@@ -209,11 +220,12 @@ app.get('/api/stimuli/media/:id', async (req, res) => {
   }
 });
 
-// Serve static frontend in production
-app.use(express.static(path.join(__dirname, 'dist')));
-
-// Fallback for React Router (if used)
+// Fallback for SPA — only send index.html for non-asset, non-API routes
 app.use((req, res) => {
+  // Don't serve index.html for API or asset requests
+  if (req.path.startsWith('/api/') || req.path.match(/\.(js|css|wasm|png|jpg|svg|ico|map)$/)) {
+    return res.status(404).send('Not found');
+  }
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
