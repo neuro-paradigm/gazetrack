@@ -1,5 +1,45 @@
 import { useState, useEffect } from 'react';
 
+// Shuffle array in-place using Fisher-Yates
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Build a playlist where:
+//  1. A video ALWAYS plays first
+//  2. After that, videos are spread out between images (never two videos in a row)
+//  3. Any leftover videos go at the end if we run out of images to separate them
+function buildPlaylist(files) {
+  const videos = shuffle(files.filter(f => f.type === 'video'));
+  const images = shuffle(files.filter(f => f.type === 'image'));
+
+  if (videos.length === 0) return images; // no videos – just shuffle images
+  if (images.length === 0) return videos; // no images – just shuffle videos
+
+  const result = [];
+
+  // Always start with a video
+  result.push(videos.shift());
+
+  // Now interleave: for each remaining video, drop 1-2 images first
+  let imgIdx = 0;
+  while (videos.length > 0) {
+    // Place 1 or 2 images (whatever's available) then a video
+    const imgCount = Math.min(2, images.length - imgIdx);
+    for (let i = 0; i < imgCount; i++) result.push(images[imgIdx++]);
+    result.push(videos.shift());
+  }
+
+  // Append any remaining images at the end
+  while (imgIdx < images.length) result.push(images[imgIdx++]);
+
+  return result;
+}
+
 export default function IntakeFormScreen({ onNext }) {
   const [pid, setPid] = useState('');
   const [age, setAge] = useState('');
@@ -22,13 +62,16 @@ export default function IntakeFormScreen({ onNext }) {
       .then(res => res.json())
       .then(data => {
         if (data.success && data.files && data.files.length > 0) {
-          const q = data.files.map(f => ({
+          const raw = data.files.map(f => ({
             src: `/api/stimuli/media/${f.id}`,
             type: f.mimeType.startsWith('image/') ? 'image' : 'video',
             name: f.name
           }));
+          const q = buildPlaylist(raw);
           setMediaQueue(q);
-          setMediaLabel(`Loaded ${q.length} files from Drive`);
+          const vCount = q.filter(f => f.type === 'video').length;
+          const iCount = q.filter(f => f.type === 'image').length;
+          setMediaLabel(`Loaded ${q.length} files (${vCount} videos, ${iCount} images) — video-first order`);
           setDriveStatus('success');
         } else {
           setMediaLabel('No files found in Drive folder');
