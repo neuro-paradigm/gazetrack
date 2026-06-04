@@ -117,7 +117,7 @@ export function computeAffineCorrection(pairs) {
     let num = 0, den = 0;
     for (let i = 0; i < n; i++) { num += (ps[i] - mp) * (ts[i] - mt); den += (ps[i] - mp) ** 2; }
     const s = den > 1e-6 ? num / den : 1;
-    const sc = Math.max(0.6, Math.min(1.6, s));
+    const sc = Math.max(0.3, Math.min(2.0, s));  // loosened for webcam noise
     return { s: sc, d: mt - sc * mp };
   }
   const fx = linfit(pairs.map(p => p.px), pairs.map(p => p.tx));
@@ -143,8 +143,8 @@ export class KalmanFilter {
 // ─── I-DT Fixation Classifier ─────────────────────────────────────────────────
 export class IDTClassifier {
   constructor() {
-    this.DISPERSION_PX = 40;
-    this.MIN_DURATION_MS = 100;
+    this.DISPERSION_PX = 100;  // widened for webcam calibration noise (was 40)
+    this.MIN_DURATION_MS = 50;  // lowered for ~15fps sample rate (was 100)
     this.VELOCITY_PX_MS = 0.3;
     this.buffer = [];
     this.fixStableStart = null;
@@ -158,7 +158,7 @@ export class IDTClassifier {
       return 'Blink';
     }
     this.buffer.push({ x: gazeX, y: gazeY, t: timestamp });
-    this.buffer = this.buffer.filter(s => timestamp - s.t < 100);
+    this.buffer = this.buffer.filter(s => timestamp - s.t < 150);  // widened for 15fps (was 100)
     if (this.buffer.length < 3) return 'Unclassified';
 
     const xs = this.buffer.map(s => s.x);
@@ -208,7 +208,7 @@ export class EARSmoother {
 // ─── CSV Builder ──────────────────────────────────────────────────────────────
 export const CSV_HDR = [
   'RecordingTime [ms]', 'WallClock [ms]', 'Participant', 'ColorTag',
-  'Trial', 'TrialStartMs', 'Stimulus', 'Category Group', 'Category Right',
+  'Trial', 'TrialStartMs', 'Stimulus', 'Stimulus Name', 'Category Group', 'Category Right',
   'Category Left', 'Index Right', 'Index Left',
   'Point of Regard Right X [px]', 'Point of Regard Right Y [px]',
   'Point of Regard Left X [px]', 'Point of Regard Left Y [px]',
@@ -219,10 +219,14 @@ export const CSV_HDR = [
   'Pupil Size Left X [px]', 'Pupil Size Left Y [px]',
   'Gaze Vector X', 'Gaze Vector Y', 'Gaze Vector Z',
   'Eye Position Z [mm]', 'Blink ID', 'Tracking Ratio [%]',
+  'Head Pitch [deg]', 'Head Yaw [deg]',
 ].join(',');
 
 export function buildCSV({ frames, meta, affineBias, valSamples, valQuality, annotations, calibAttemptNum, calibPassed, calibTimestamp, stimFilename, trialNumber, IDT_DISPERSION_PX = 40, IDT_MIN_DUR_MS = 100, EAR_WINDOW = 5, BLINK_CONSEC = 2 }) {
-  const metaLine = `# GazeTrack v14 | bias_dx=${affineBias.dx.toFixed(2)} bias_dy=${affineBias.dy.toFixed(2)} bias_sx=${affineBias.sx.toFixed(4)} bias_sy=${affineBias.sy.toFixed(4)} val_samples=${valSamples.length} trials=${trialNumber} IDT_dispersion_px=${IDT_DISPERSION_PX} IDT_min_dur_ms=${IDT_MIN_DUR_MS} EAR_window=${EAR_WINDOW} blink_consec=${BLINK_CONSEC} screen_w=${window.innerWidth} screen_h=${window.innerHeight} participant=${meta.pid} group=${meta.group} age=${meta.age}`;
+  const meanValErr = valQuality.length > 0
+    ? (valQuality.reduce((s, v) => s + parseFloat(v.errPx), 0) / valQuality.length).toFixed(1)
+    : 'N/A';
+  const metaLine = `# GazeTrack v14 | bias_dx=${affineBias.dx.toFixed(2)} bias_dy=${affineBias.dy.toFixed(2)} bias_sx=${affineBias.sx.toFixed(4)} bias_sy=${affineBias.sy.toFixed(4)} val_samples=${valSamples.length} mean_val_err_px=${meanValErr} trials=${trialNumber} IDT_dispersion_px=${IDT_DISPERSION_PX} IDT_min_dur_ms=${IDT_MIN_DUR_MS} EAR_window=${EAR_WINDOW} blink_consec=${BLINK_CONSEC} screen_w=${window.innerWidth} screen_h=${window.innerHeight} participant=${meta.pid} group=${meta.group} age=${meta.age}`;
   const calibLine = `# CALIB | attempt=${calibAttemptNum} | passed=${calibPassed} | timestamp=${calibTimestamp} | n_val_points=${valQuality.length}`;
   const valLines = valQuality.map((v, i) => `# VAL_PT | ${i} | tx=${v.tx} | ty=${v.ty} | gx=${v.gx} | gy=${v.gy} | err_px=${v.errPx}`).join('\n');
   const annotLines = annotations.map(a => `# ANNOT | t=${a.t.toFixed(1)} | wallClock=${a.wallClock} | label=${a.label}`).join('\n');
@@ -242,7 +246,7 @@ export function buildCSV({ frames, meta, affineBias, valSamples, valQuality, ann
     lines.push([
       f.t.toFixed(3), f.wallClock ? Math.round(f.wallClock) : '', meta.pid, meta.colorTag || '',
       f.trial ?? 1, f.trialStartMs != null ? f.trialStartMs.toFixed(0) : '', stimFilename,
-      catGrp, catRL, catRL,
+      f.stimulusName || '', catGrp, catRL, catRL,
       f.fixationIndex != null ? f.fixationIndex : '', f.fixationIndex != null ? f.fixationIndex : '',
       xR, yR, xR, yR,
       fmt(f.pupilLX), fmt(f.pupilLY), fmt(f.pupilRX), fmt(f.pupilRY),
@@ -251,6 +255,7 @@ export function buildCSV({ frames, meta, affineBias, valSamples, valQuality, ann
       fmt(f.gvX), fmt(f.gvY), fmt(f.gvZ), fmt(f.eyePosZ),
       isNaN(f.blinkId) ? '' : f.blinkId,
       f.faceConfPct != null ? f.faceConfPct : '',
+      fmt(f.headPitch), fmt(f.headYaw),
     ].join(','));
   });
   return lines.join('\n');

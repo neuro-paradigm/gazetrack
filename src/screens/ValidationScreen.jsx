@@ -122,8 +122,8 @@ export default function ValidationScreen({ workerRef, gazeModel, soundEnabled, t
       cancelAnimationFrame(rafRef.current);
       if (valSamples.length >= 3) {
         const affineBias = computeAffineCorrection(valSamples);
-        const bad = Math.abs(affineBias.dx) > 400 || affineBias.sx > 1.6 || affineBias.sx < 0.4
-          || Math.abs(affineBias.dy) > 400 || affineBias.sy > 1.6 || affineBias.sy < 0.4;
+        const bad = Math.abs(affineBias.dx) > 600 || affineBias.sx > 2.0 || affineBias.sx < 0.3
+          || Math.abs(affineBias.dy) > 600 || affineBias.sy > 2.0 || affineBias.sy < 0.3;
         if (bad) { onBadCalib(); return; }
         const valQuality = valSamples.map(s => ({
           tx: Math.round(s.tx), ty: Math.round(s.ty),

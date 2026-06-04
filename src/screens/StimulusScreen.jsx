@@ -54,8 +54,8 @@ export default function StimulusScreen({
   const pausedRef = useRef(false);
   const trialAutoTimer = useRef(null);
   const timerInt = useRef(null);
-  const kalmanX = useRef(new KalmanFilter(20, 0.5));
-  const kalmanY = useRef(new KalmanFilter(20, 0.5));
+  const kalmanX = useRef(new KalmanFilter(12, 1.2));  // tuned for ~15fps (was 20, 0.5)
+  const kalmanY = useRef(new KalmanFilter(12, 1.2));
   const idt = useRef(new IDTClassifier());
   const earSmoother = useRef(new EARSmoother(5));
 
@@ -200,7 +200,7 @@ export default function StimulusScreen({
         const rawEAR = feat[7];
         const smoothEAR = earSmoother.current.smooth(rawEAR);
         const faceConfPct = Math.round(Math.min(1, smoothEAR / 0.15) * 100);
-        const smoothBlink = smoothEAR < 0.06;
+        const smoothBlink = smoothEAR < 0.08;  // raised for children's larger eyes (was 0.06)
 
         if (smoothBlink) {
           blinkConsec.current++;
@@ -217,12 +217,18 @@ export default function StimulusScreen({
           trackedF.current++;
           const gazeEvent = idt.current.classify(gaze.x, gaze.y, ts, false);
           blinkIdActive.current = false; currentBlinkId.current = NaN;
+          // Extract head pose: pitch (feat[2]*30 = degrees), yaw from rotation matrix
+          const headPitch = feat[2] * 30;
+          const mat2 = matrices && matrices.length > 0 ? matrices[0] : null;
+          const headYaw = mat2?.data ? +(Math.atan2(-mat2.data[2], mat2.data[10]) * 180 / Math.PI).toFixed(2) : NaN;
           recordedFrames.current.push({
             t: ts, x: gaze.x, y: gaze.y, tracked: 1, feat,
             trial: trialNumber.current, trialStartMs: trialStart.current,
             gazeEvent, irisRadiusPxL, irisRadiusPxR, faceConfPct,
             fixationIndex: gazeEvent === 'Fixation' ? idt.current.fixationIndex : 0,
             wallClock, ...pd, ...gv, blinkId: NaN,
+            stimulusName: mediaQueue[mediaIdx.current]?.name || '',
+            headPitch, headYaw,
           });
           setStGaze('Tracking'); setStGazeOk(true);
           canvas.getContext('2d').clearRect(0, 0, W, H);
@@ -237,6 +243,8 @@ export default function StimulusScreen({
             gazeEvent: blinkLabel, irisRadiusPxL, irisRadiusPxR, faceConfPct,
             fixationIndex: 0, wallClock, ...pd, ...gv,
             blinkId: currentBlinkId.current,
+            stimulusName: mediaQueue[mediaIdx.current]?.name || '',
+            headPitch: NaN, headYaw: NaN,
           });
           setStGaze(confirmedBlink ? 'Blink' : '—'); setStGazeOk(false);
           canvas.getContext('2d').clearRect(0, 0, W, H);
@@ -251,11 +259,14 @@ export default function StimulusScreen({
         recordedFrames.current.push({
           t: ts, x: NaN, y: NaN, tracked: 0, feat: null,
           trial: trialNumber.current, trialStartMs: trialStart.current,
-          gazeEvent: 'Blink', irisRadiusPxL: NaN, irisRadiusPxR: NaN, faceConfPct: 0,
+          gazeEvent: 'FaceLost',  // distinct from Blink — face not visible
+          irisRadiusPxL: NaN, irisRadiusPxR: NaN, faceConfPct: 0,
           fixationIndex: 0, wallClock: sessionStart + ts,
           pupilLX: NaN, pupilLY: NaN, pupilRX: NaN, pupilRY: NaN,
           pupilSizeLX: NaN, pupilSizeLY: NaN, pupilSizeRX: NaN, pupilSizeRY: NaN,
           gvX: NaN, gvY: NaN, gvZ: NaN, eyePosZ: NaN, blinkId: currentBlinkId.current,
+          stimulusName: mediaQueue[mediaIdx.current]?.name || '',
+          headPitch: NaN, headYaw: NaN,
         });
       }
 
