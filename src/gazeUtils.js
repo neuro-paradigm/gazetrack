@@ -143,7 +143,7 @@ export class KalmanFilter {
 // ─── I-DT Fixation Classifier ─────────────────────────────────────────────────
 export class IDTClassifier {
   constructor() {
-    this.DISPERSION_PX = 100;  // widened for webcam calibration noise (was 40)
+    this.DISPERSION_PX = 60;  // 60px tolerates webcam noise without swallowing saccades (was 40)
     this.MIN_DURATION_MS = 50;  // lowered for ~15fps sample rate (was 100)
     this.VELOCITY_PX_MS = 0.3;
     this.buffer = [];
@@ -208,7 +208,7 @@ export class EARSmoother {
 // ─── CSV Builder ──────────────────────────────────────────────────────────────
 export const CSV_HDR = [
   'RecordingTime [ms]', 'WallClock [ms]', 'Participant', 'ColorTag',
-  'Trial', 'TrialStartMs', 'Stimulus', 'Stimulus Name', 'Category Group', 'Category Right',
+  'Trial', 'TrialStartMs', 'Stimulus', 'Category Group', 'Category Right',
   'Category Left', 'Index Right', 'Index Left',
   'Point of Regard Right X [px]', 'Point of Regard Right Y [px]',
   'Point of Regard Left X [px]', 'Point of Regard Left Y [px]',
@@ -226,7 +226,7 @@ export function buildCSV({ frames, meta, affineBias, valSamples, valQuality, ann
   const meanValErr = valQuality.length > 0
     ? (valQuality.reduce((s, v) => s + parseFloat(v.errPx), 0) / valQuality.length).toFixed(1)
     : 'N/A';
-  const metaLine = `# GazeTrack v14 | bias_dx=${affineBias.dx.toFixed(2)} bias_dy=${affineBias.dy.toFixed(2)} bias_sx=${affineBias.sx.toFixed(4)} bias_sy=${affineBias.sy.toFixed(4)} val_samples=${valSamples.length} mean_val_err_px=${meanValErr} trials=${trialNumber} IDT_dispersion_px=${IDT_DISPERSION_PX} IDT_min_dur_ms=${IDT_MIN_DUR_MS} EAR_window=${EAR_WINDOW} blink_consec=${BLINK_CONSEC} screen_w=${window.innerWidth} screen_h=${window.innerHeight} participant=${meta.pid} group=${meta.group} age=${meta.age}`;
+  const metaLine = `# GazeTrack v14 | bias_dx=${affineBias.dx.toFixed(2)} bias_dy=${affineBias.dy.toFixed(2)} bias_sx=${affineBias.sx.toFixed(4)} bias_sy=${affineBias.sy.toFixed(4)} val_samples=${valSamples.length} mean_val_err_px=${meanValErr} trials=${trialNumber} IDT_dispersion_px=${IDT_DISPERSION_PX} IDT_min_dur_ms=${IDT_MIN_DUR_MS} EAR_window=${EAR_WINDOW} blink_consec=${BLINK_CONSEC} screen_w=${window.innerWidth} screen_h=${window.innerHeight} participant=${meta.pid} group=${meta.group} age=${meta.age} stimuli_session=${stimFilename}`;
   const calibLine = `# CALIB | attempt=${calibAttemptNum} | passed=${calibPassed} | timestamp=${calibTimestamp} | n_val_points=${valQuality.length}`;
   const valLines = valQuality.map((v, i) => `# VAL_PT | ${i} | tx=${v.tx} | ty=${v.ty} | gx=${v.gx} | gy=${v.gy} | err_px=${v.errPx}`).join('\n');
   const annotLines = annotations.map(a => `# ANNOT | t=${a.t.toFixed(1)} | wallClock=${a.wallClock} | label=${a.label}`).join('\n');
@@ -245,8 +245,9 @@ export function buildCSV({ frames, meta, affineBias, valSamples, valQuality, ann
     const catRL = f.gazeEvent || '';
     lines.push([
       f.t.toFixed(3), f.wallClock ? Math.round(f.wallClock) : '', meta.pid, meta.colorTag || '',
-      f.trial ?? 1, f.trialStartMs != null ? f.trialStartMs.toFixed(0) : '', stimFilename,
-      f.stimulusName || '', catGrp, catRL, catRL,
+      f.trial ?? 1, f.trialStartMs != null ? f.trialStartMs.toFixed(0) : '',
+      f.stimulusName || '',  // per-frame stimulus name (session list is in meta header)
+      catGrp, catRL, catRL,
       f.fixationIndex != null ? f.fixationIndex : '', f.fixationIndex != null ? f.fixationIndex : '',
       xR, yR, xR, yR,
       fmt(f.pupilLX), fmt(f.pupilLY), fmt(f.pupilRX), fmt(f.pupilRY),

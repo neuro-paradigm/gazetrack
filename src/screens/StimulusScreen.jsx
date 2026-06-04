@@ -217,10 +217,11 @@ export default function StimulusScreen({
           trackedF.current++;
           const gazeEvent = idt.current.classify(gaze.x, gaze.y, ts, false);
           blinkIdActive.current = false; currentBlinkId.current = NaN;
-          // Extract head pose: pitch (feat[2]*30 = degrees), yaw from rotation matrix
-          const headPitch = feat[2] * 30;
-          const mat2 = matrices && matrices.length > 0 ? matrices[0] : null;
-          const headYaw = mat2?.data ? +(Math.atan2(-mat2.data[2], mat2.data[10]) * 180 / Math.PI).toFixed(2) : NaN;
+          // Extract head pose from 4x4 column-major rotation matrix (MediaPipe format)
+          // Pitch: asin(-m[6]) i.e. -R[1][2], same formula as extractFeatures
+          // Yaw:   atan2(m[8], m[0]) i.e. R[2][0] / R[0][0]  — negative=left, positive=right
+          const headPitch = mat?.data ? +(Math.asin(Math.max(-1, Math.min(1, -mat.data[6]))) * 180 / Math.PI).toFixed(2) : NaN;
+          const headYaw = mat?.data ? +(Math.atan2(mat.data[8], mat.data[0]) * 180 / Math.PI).toFixed(2) : NaN;
           recordedFrames.current.push({
             t: ts, x: gaze.x, y: gaze.y, tracked: 1, feat,
             trial: trialNumber.current, trialStartMs: trialStart.current,
