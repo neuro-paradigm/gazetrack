@@ -56,20 +56,8 @@ export default function App() {
   const [affineBias, setAffineBias] = useState({ dx: 0, dy: 0, sx: 1, sy: 1 });
   const [valSamples, setValSamples] = useState([]);
   const [valQuality, setValQuality] = useState([]);
-
-  // Calibration tracking
-  const [calibAttemptNum, setCalibAttemptNum] = useState(0);
+  const [calibAttemptNum, setCalibAttemptNum] = useState(1);
   const [calibPassed, setCalibPassed] = useState(false);
-  const [calibTimestamp, setCalibTimestamp] = useState('');
-
-  // Session timing
-  const [sessionStart, setSessionStart] = useState(0);
-  const [perfStart, setPerfStart] = useState(0);
-
-  // Done screen stats
-  const [doneStats, setDoneStats] = useState(null);
-  const [csvData, setCsvData] = useState('');
-
   // Web Worker ref — single instance for whole session
   const workerRef = useRef(null);
   // Hidden webcam video element used by worker sender loop
@@ -98,18 +86,20 @@ export default function App() {
     };
 
     function sendFrame() {
-      if (!workerRef.current || video.readyState < 2) {
+      if (!workerRef.current || video.readyState < 2 || isWorkerBusy.current) {
         sendRafRef.current = requestAnimationFrame(sendFrame); return;
       }
       if (video.currentTime === lastSentVT.current) {
         sendRafRef.current = requestAnimationFrame(sendFrame); return;
       }
       lastSentVT.current = video.currentTime;
+      isWorkerBusy.current = true;
       const ts = video.currentTime * 1000 || performance.now();
       createImageBitmap(video).then(bitmap => {
         workerRef.current?.postMessage({ type: 'detect', bitmap, timestamp: ts }, [bitmap]);
       }).catch(err => {
         console.error('createImageBitmap error:', err);
+        isWorkerBusy.current = false;
       });
       sendRafRef.current = requestAnimationFrame(sendFrame);
     }
@@ -122,13 +112,22 @@ export default function App() {
     setPhase('loading');
     setLoadMsg('Loading eye tracking model…');
 
-    try {
+      try {
       // Initialise worker
       const worker = new Worker(new URL('./gazeWorker.js', import.meta.url));
       workerRef.current = worker;
+      worker.addEventListener('message', (e) => {
+        if (e.data.type === 'result' || e.data.type === 'error') {
+          isWorkerBusy.current = false;
+        }
+      });
 
       await new Promise((resolve, reject) => {
-        worker.onmessage = (e) => { if (e.data.type === 'ready') resolve(); if (e.data.type === 'error') reject(new Error(e.data.message)); };
+        const initListener = (e) => {
+          if (e.data.type === 'ready') { worker.removeEventListener('message', initListener); resolve(); }
+          if (e.data.type === 'error') { worker.removeEventListener('message', initListener); reject(new Error(e.data.message)); }
+        };
+        worker.addEventListener('message', initListener);
         worker.onerror = reject;
         // If previewFl already loaded in IntakeScreen, use its model via re-init in worker
         worker.postMessage({ type: 'init', delegate: MP_DELEGATE });

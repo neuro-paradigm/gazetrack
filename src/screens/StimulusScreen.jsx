@@ -58,6 +58,7 @@ export default function StimulusScreen({
   const kalmanY = useRef(new KalmanFilter(12, 1.2));
   const idt = useRef(new IDTClassifier());
   const earSmoother = useRef(new EARSmoother(5));
+  const lastUiUpdateRef = useRef(0);
 
   const affineBiasRef = useRef(affineBias);
   const gazeModelRef = useRef(gazeModel);
@@ -271,16 +272,20 @@ export default function StimulusScreen({
         });
       }
 
-      const frames = recordedFrames.current.length;
-      setStFrames(frames);
-      if (totalF.current > 0) setStTrack(Math.round(trackedF.current / totalF.current * 100) + '%');
-      if (frames > 10) {
-        const ys = recordedFrames.current.filter(f => f.tracked).map(f => f.y);
-        if (ys.length > 1) {
-          const my = ys.reduce((a, b) => a + b, 0) / ys.length;
-          const sy = Math.sqrt(ys.reduce((a, b) => a + (b - my) ** 2, 0) / ys.length);
-          setStYstd(sy.toFixed(0) + 'px');
-          setStYstdOk(sy > 30);
+      const nowMs = performance.now();
+      if (nowMs - lastUiUpdateRef.current > 500) {
+        lastUiUpdateRef.current = nowMs;
+        const frames = recordedFrames.current.length;
+        setStFrames(frames);
+        if (totalF.current > 0) setStTrack(Math.round(trackedF.current / totalF.current * 100) + '%');
+        if (frames > 10) {
+          const ys = recordedFrames.current.filter(f => f.tracked).map(f => f.y);
+          if (ys.length > 1) {
+            const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+            const sy = Math.sqrt(ys.reduce((a, b) => a + (b - my) ** 2, 0) / ys.length);
+            setStYstd(sy.toFixed(0) + 'px');
+            setStYstdOk(sy > 30);
+          }
         }
       }
     };
