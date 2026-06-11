@@ -1,24 +1,16 @@
 import { useState, useEffect } from 'react';
 
-// Shuffle array in-place using Fisher-Yates
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
 // Build a playlist where:
 //  1. A video ALWAYS plays first
 //  2. After that, videos are spread out between images (never two videos in a row)
 //  3. Any leftover videos go at the end if we run out of images to separate them
 function buildPlaylist(files) {
-  const videos = shuffle(files.filter(f => f.type === 'video'));
-  const images = shuffle(files.filter(f => f.type === 'image'));
+  // Sort alphabetically by filename to ensure a fixed, predictable order
+  const videos = files.filter(f => f.type === 'video').sort((a, b) => a.name.localeCompare(b.name));
+  const images = files.filter(f => f.type === 'image').sort((a, b) => a.name.localeCompare(b.name));
 
-  if (videos.length === 0) return images; // no videos – just shuffle images
-  if (images.length === 0) return videos; // no images – just shuffle videos
+  if (videos.length === 0) return images; // no videos
+  if (images.length === 0) return videos; // no images
 
   const result = [];
 
