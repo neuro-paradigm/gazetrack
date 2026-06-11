@@ -56,10 +56,23 @@ export default function App() {
   const [affineBias, setAffineBias] = useState({ dx: 0, dy: 0, sx: 1, sy: 1 });
   const [valSamples, setValSamples] = useState([]);
   const [valQuality, setValQuality] = useState([]);
-  const [calibAttemptNum, setCalibAttemptNum] = useState(1);
+
+  // Calibration tracking
+  const [calibAttemptNum, setCalibAttemptNum] = useState(0);
   const [calibPassed, setCalibPassed] = useState(false);
+  const [calibTimestamp, setCalibTimestamp] = useState('');
+
+  // Session timing
+  const [sessionStart, setSessionStart] = useState(0);
+  const [perfStart, setPerfStart] = useState(0);
+
+  // Done screen stats
+  const [doneStats, setDoneStats] = useState(null);
+  const [csvData, setCsvData] = useState('');
+
   // Web Worker ref — single instance for whole session
   const workerRef = useRef(null);
+  const isWorkerBusy = useRef(false);
   // Hidden webcam video element used by worker sender loop
   const webcamRef = useRef(null);
   const sendRafRef = useRef(null);
@@ -112,7 +125,7 @@ export default function App() {
     setPhase('loading');
     setLoadMsg('Loading eye tracking model…');
 
-      try {
+    try {
       // Initialise worker
       const worker = new Worker(new URL('./gazeWorker.js', import.meta.url));
       workerRef.current = worker;
