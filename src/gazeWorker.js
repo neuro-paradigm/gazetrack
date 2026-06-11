@@ -71,7 +71,8 @@ self.onmessage = async (e) => {
       bitmap.close(); // free the ImageBitmap memory
     } catch (err) {
       console.error('Worker detect error:', err);
-      // Timestamp collision or graph error — skip frame silently
+      if (e.data.bitmap && e.data.bitmap.close) e.data.bitmap.close();
+      self.postMessage({ type: 'error', message: err.message || 'detect error' });
     }
     return;
   }
